@@ -14,7 +14,9 @@ export function initStage(): [Stage, UpdateDelegate, DrawDelegate] {
   return [stage, update, draw];
 }
 
-export function update(stage: Stage) {}
+export function update(/* stage: Stage */) {
+  return;
+}
 
 export function draw(stage: Stage) {
   clearCanvas();
