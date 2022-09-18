@@ -171,31 +171,31 @@ export function computePathfindingProgress(minion: Minion, map: GameMap) {
 }
 
 export function findMostProgressedMinionInRange(
-  { minions, minionMap, map }: Stage,
+  { minions, map }: Stage,
   xy: Position,
   range: number
 ): string | null {
   let mostProgressed = null;
   let bestProgress = Infinity;
-  for (let i = 0; i < minions.length; i += 1) {
-    const minionId = minions[i];
-    if (!minionId) continue;
-    const minion = minionMap[minionId];
-    if (!minion) continue;
+  let minionNode = minions;
+  while (minionNode !== null) {
+    const minion = minionNode.value;
 
     const distance = len(sub(minion.xy, xy));
     if (distance <= range) {
       if (mostProgressed === null) {
-        mostProgressed = minionId;
+        mostProgressed = minion.id;
         bestProgress = computePathfindingProgress(minion, map);
       } else {
         const minionProgress = computePathfindingProgress(minion, map);
         if (minionProgress < bestProgress) {
-          mostProgressed = minionId;
+          mostProgressed = minion.id;
           bestProgress = minionProgress;
         }
       }
     }
+
+    minionNode = minionNode.next;
   }
 
   return mostProgressed;

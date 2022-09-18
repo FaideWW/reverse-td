@@ -1,5 +1,5 @@
-import { Dimension, GameMap, Minion, Position, Rect, TileType } from "./types";
-import { add, len, sub } from "./vector";
+import { Dimension, ListNode, Position, Rect, TileType } from "./types";
+import { add } from "./vector";
 
 export function canvasToWorldTransform(
   [tw, th]: Dimension,
@@ -54,4 +54,54 @@ export function pointInRect(point: Position, rect: Rect): boolean {
     point[1] >= rectMinY &&
     point[1] <= rectMaxY
   );
+}
+
+export function llFind<T>(
+  head: ListNode<T> | null,
+  predicate: (val: T) => boolean
+): T | null {
+  if (head === null) return null;
+  let node: ListNode<T> | null = head;
+  while (node !== null) {
+    if (predicate(node.value)) {
+      return node.value;
+    }
+
+    node = node.next;
+  }
+
+  return null;
+}
+
+// Insert an element at the head of the list (unsorted)
+export function llInsert<T>(head: ListNode<T> | null, value: T): ListNode<T> {
+  return {
+    value,
+    next: head,
+  };
+}
+
+export function llRemove<T>(
+  head: ListNode<T> | null,
+  predicate: (val: T) => boolean
+): ListNode<T> | null {
+  let last = null;
+  let node: ListNode<T> | null = head;
+  while (node !== null) {
+    if (predicate(node.value)) {
+      if (last === null) {
+        // If last is null we're at the head of the list, so simply return head.next as the new head
+        return node.next;
+      }
+
+      // Otherwise, link up last with node.next
+      last.next = node.next;
+      return head;
+    }
+
+    last = node;
+    node = node.next;
+  }
+
+  return head;
 }

@@ -4,6 +4,11 @@ export type Vector = [number, number];
 export type Position = Vector;
 export type Dimension = Vector;
 
+export interface ListNode<T> {
+  value: T;
+  next: ListNode<T> | null;
+}
+
 export interface MinionPathfindingState {
   tileOffset: Position;
   lastWaypoint: Position | null;
@@ -28,6 +33,9 @@ export interface Tower {
   xy: Position;
   type: TowerType;
   range: number;
+  reload: number;
+  reloadSpeed: number;
+  attackDamage: number;
   trackingMinionId: string | null;
   facingAngle: number;
 }
@@ -56,10 +64,8 @@ export interface GameMap {
 
 export interface Stage {
   map: GameMap;
-  minions: string[];
-  minionMap: Record<string, Minion>;
-  towers: string[];
-  towerMap: Record<string, Tower>;
+  minions: ListNode<Minion> | null;
+  towers: ListNode<Tower> | null;
   timeElapsed: number;
   player: PlayerState;
 }
