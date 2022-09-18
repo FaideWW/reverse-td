@@ -43,14 +43,6 @@ export const useGameStore = create<GameState & GameActions>()(
   }))
 );
 
-declare global {
-  interface Window {
-    getGameState: () => GameState & GameActions;
-  }
-}
-
-window.getGameState = useGameStore.getState;
-
 export function init() {
   useGameStore.setState(
     produce((game: GameState) => {
