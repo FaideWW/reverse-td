@@ -15,17 +15,28 @@ export function clearCanvas(
   ctx.restore();
 }
 
+interface RectStyle {
+  fill: ColorRGBA;
+  stroke?: ColorRGBA;
+  lineWidth?: number;
+}
 export function drawRect(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   w: number,
   h: number,
-  color: ColorRGBA
+  { fill, stroke, lineWidth }: RectStyle
 ): void {
   if (!ctx) return;
   ctx.save();
-  ctx.fillStyle = colorToStr(color);
+  ctx.fillStyle = colorToStr(fill);
+  if (stroke) {
+    ctx.strokeStyle = colorToStr(stroke);
+  }
+  if (lineWidth) {
+    ctx.lineWidth = lineWidth;
+  }
   ctx.fillRect(x, y, w, h);
   ctx.restore();
 }

@@ -151,6 +151,7 @@ export function createMinion(pos: Position): Minion {
     id: nanoid(),
     xy,
     health: BASE_MINION_HEALTH,
+    maxHealth: BASE_MINION_HEALTH,
     movementSpeed: BASE_MINION_MOVEMENT_SPEED,
     attackSpeed: BASE_MINION_ATTACK_SPEED,
     pathfinding: {
@@ -363,15 +364,17 @@ export function draw(game: LoadedGameState) {
   }
 }
 
-const green: ColorRGBA = [0, 255, 0, 1];
 const red: ColorRGBA = [255, 0, 0, 1];
+const green: ColorRGBA = [0, 255, 0, 1];
 const blue: ColorRGBA = [0, 0, 255, 1];
 const white: ColorRGBA = [255, 255, 255, 1];
 
 function drawGoal({ stage, canvas }: LoadedGameState) {
   const [x, y] = worldToCanvasTransform(stage.map.tileSize, stage.map.goal);
   const [tileW, tileH] = stage.map.tileSize;
-  drawRect(canvas._ctx, x - tileW / 2, y - tileH / 2, tileW, tileH, green);
+  drawRect(canvas._ctx, x - tileW / 2, y - tileH / 2, tileW, tileH, {
+    fill: green,
+  });
 }
 
 function drawWalls({ stage, canvas }: LoadedGameState) {
@@ -383,20 +386,16 @@ function drawWalls({ stage, canvas }: LoadedGameState) {
       const tile = map.tiles[posToStr([x, y])];
       if (tile === TileType.WALL) {
         const [wx, wy] = worldToCanvasTransform(stage.map.tileSize, [x, y]);
-        drawRect(
-          canvas._ctx,
-          wx - tileW / 2,
-          wy - tileH / 2,
-          tileW,
-          tileH,
-          blue
-        );
+        drawRect(canvas._ctx, wx - tileW / 2, wy - tileH / 2, tileW, tileH, {
+          fill: blue,
+        });
       }
     }
   }
 }
 
-function drawMinions({ stage, canvas }: LoadedGameState) {
+function drawMinions(game: LoadedGameState) {
+  const { stage, canvas } = game;
   const minionSize = 6;
   let minionNode = stage.minions;
   while (minionNode !== null) {
@@ -408,11 +407,39 @@ function drawMinions({ stage, canvas }: LoadedGameState) {
       y - minionSize / 2,
       minionSize,
       minionSize,
-      white
+      { fill: white }
     );
+
+    if (minion.health < minion.maxHealth) {
+      drawHealthBarPx(
+        game,
+        add([x, y], [0, minionSize + 2]),
+        [15, 5],
+        minion.health / minion.maxHealth
+      );
+    }
 
     minionNode = minionNode.next;
   }
+}
+
+function drawHealthBarPx(
+  { canvas }: LoadedGameState,
+  [x, y]: Position,
+  [w, h]: Dimension,
+  hpRatio: number
+) {
+  // Draw background
+  drawRect(canvas._ctx, x - w / 2, y - h / 2, w, h, {
+    fill: red,
+    stroke: white,
+    lineWidth: 2,
+  });
+  const healthBarWidth = w * hpRatio;
+  // Draw healthBar
+  drawRect(canvas._ctx, x - w / 2, y - h / 2, healthBarWidth, h, {
+    fill: green,
+  });
 }
 
 const cyan: ColorRGBA = [0, 255, 255, 1];
@@ -453,7 +480,7 @@ function drawSpawnableArea({ stage, canvas }: LoadedGameState) {
     y - stage.map.tileSize[1] / 2,
     w,
     h,
-    semiWhite
+    { fill: semiWhite }
   );
 }
 

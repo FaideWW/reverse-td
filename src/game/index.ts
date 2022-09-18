@@ -43,6 +43,16 @@ export const useGameStore = create<GameState & GameActions>()(
   }))
 );
 
+declare global {
+  interface Window {
+    getGameState: () => GameState & GameActions;
+  }
+}
+
+if (process.browser) {
+  window.getGameState = useGameStore.getState;
+}
+
 export function init() {
   useGameStore.setState(
     produce((game: GameState) => {

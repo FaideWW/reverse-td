@@ -19,6 +19,7 @@ export interface Minion {
   id: string;
   xy: Position;
   health: number;
+  maxHealth: number;
   movementSpeed: number;
   attackSpeed: number;
   pathfinding: MinionPathfindingState;
