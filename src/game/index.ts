@@ -1,40 +1,98 @@
-import { initStage } from "./stage";
-import { GameState } from "./types";
+import produce from "immer";
+import create from "zustand";
+import { devtools } from "zustand/middleware";
+import { DEFAULT_GAME_SETTINGS } from "./constants";
+import { initInput } from "./input";
+import { loadStage } from "./stage";
+import { GameActions, GameSettings, GameState, LoadedGameState } from "./types";
 
-let game: GameState;
-let rafId = 0;
-
-export function initGame(): GameState {
-  const [stage, update, draw] = initStage();
-  game = {
-    currentStage: stage,
+export const useGameStore = create<GameState & GameActions>()(
+  devtools((set) => ({
+    // State
+    stage: null,
     running: false,
-    lastFrametime: -1,
-    delegate: { update, draw },
-  };
-  return game;
+    input: initInput(),
+    update: () => {
+      throw new Error("No stage loaded!");
+    },
+    draw: () => {
+      throw new Error("No stage loaded!");
+    },
+    canvas: {
+      _ctx: null,
+      size: [0, 0],
+    },
+    registerCanvas: (
+      ctx: CanvasRenderingContext2D | null,
+      width: number,
+      height: number
+    ) =>
+      set(
+        produce((game: GameState) => {
+          game.canvas._ctx = ctx;
+          game.canvas.size = [width, height];
+        })
+      ),
+    settings: DEFAULT_GAME_SETTINGS,
+    updateSettings: (newSettings: Partial<GameSettings>) =>
+      set(
+        produce((game: GameState) => {
+          game.settings = { ...game.settings, ...newSettings };
+        })
+      ),
+  }))
+);
+
+export function init() {
+  useGameStore.setState(
+    produce((game: GameState) => {
+      const [stage, update, draw] = loadStage(game.canvas.size);
+      game.stage = stage;
+      game.update = update;
+      game.draw = draw;
+    })
+  );
 }
 
 export function start() {
-  game.running = true;
-  rafId = window.requestAnimationFrame(loop);
+  useGameStore.setState(
+    produce((game: GameState) => {
+      game.running = true;
+    })
+  );
 }
 
 export function stop() {
-  game.running = false;
-  window.cancelAnimationFrame(rafId);
+  useGameStore.setState(
+    produce((game: GameState) => {
+      game.running = false;
+    })
+  );
 }
 
-export function loop(frametime: DOMHighResTimeStamp) {
+export function step(delta: DOMHighResTimeStamp) {
+  const game = useGameStore.getState();
   if (!game.running) return;
-  if (game.lastFrametime === -1) {
-    game.lastFrametime = frametime;
-  }
+  useGameStore.setState(
+    produce((draft: GameState) => {
+      if (gameIsLoaded(draft)) draft.update(draft, delta);
+    })
+  );
 
-  const delta = frametime - game.lastFrametime;
+  const nextGame = useGameStore.getState();
+  if (gameIsLoaded(nextGame)) nextGame.draw(nextGame);
+  // useGameStore.setState(
+  //   produce((game: GameState) => {
+  //     if (!game.running) return;
 
-  game.delegate.update(game.currentStage, delta);
-  game.delegate.draw(game.currentStage);
+  //     if (gameIsLoaded(game)) {
+  //       game.update(game, delta);
+  //       game.draw(game);
+  //     }
+  //   })
+  // );
+}
 
-  rafId = window.requestAnimationFrame(loop);
+function gameIsLoaded(game: GameState): game is LoadedGameState {
+  return game.stage !== null && game.canvas._ctx !== null;
 }

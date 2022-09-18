@@ -16,13 +16,16 @@
     "@trpc/next": "^9.27.2",
     "@trpc/react": "^9.27.2",
     "@trpc/server": "^9.27.2",
+    "immer": "^9.0.15",
+    "nanoid": "^4.0.0",
     "next": "12.2.5",
     "next-auth": "^4.10.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-query": "^3.39.2",
     "superjson": "^1.10.0",
-    "zod": "^3.18.0"
+    "zod": "^3.18.0",
+    "zustand": "^4.1.1"
   },
   "devDependencies": {
     "@types/node": "18.0.0",

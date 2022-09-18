@@ -1,14 +1,31 @@
 import type { NextPage } from "next";
 import Head from "next/head";
+import { useEffect } from "react";
 import Canvas from "../components/Canvas";
-import { initGame, start } from "../game";
+import PlayerSummonReloadBar from "../components/PlayerSummonReloadBar";
+import Settings from "../components/Settings";
+import { init, start, step } from "../game";
 
 const Home: NextPage = () => {
   // const hello = trpc.useQuery(["example.hello", { text: "from tRPC" }]);
   const handleStartGame = () => {
-    initGame();
+    init();
     start();
   };
+
+  useEffect(() => {
+    let lastFrametime = performance.now();
+    function gameLoop(frametime: DOMHighResTimeStamp) {
+      const delta = frametime - lastFrametime;
+
+      step(delta);
+
+      lastFrametime = frametime;
+      window.requestAnimationFrame(gameLoop);
+    }
+
+    window.requestAnimationFrame(gameLoop);
+  }, []);
 
   return (
     <>
@@ -23,6 +40,8 @@ const Home: NextPage = () => {
           Reverse TD
         </h1>
         <Canvas onContextLoaded={handleStartGame} />
+        <PlayerSummonReloadBar />
+        <Settings />
       </main>
     </>
   );

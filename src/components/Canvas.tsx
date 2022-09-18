@@ -1,23 +1,34 @@
 import { useCallback } from "react";
-import { drawRect, registerCanvasContext } from "../game/draw";
+import { useGameStore } from "../game";
+import { handleMouseDown, handleMouseMove, handleMouseUp } from "../game/input";
 
 export interface CanvasProps {
   onContextLoaded: () => void;
 }
 
 export default function Canvas({ onContextLoaded }: CanvasProps) {
+  const registerCanvas = useGameStore((store) => store.registerCanvas);
   const contextRef = useCallback(
     (node: HTMLCanvasElement) => {
       if (node !== null) {
         const ctx = node.getContext("2d");
-        registerCanvasContext(ctx);
+        const rect = node.getBoundingClientRect();
+        registerCanvas(ctx, rect.width, rect.height);
         if (ctx !== null) {
           onContextLoaded();
         }
-        drawRect(0, 0, 100, 100, [255, 0, 0, 0.5]);
       }
     },
-    [onContextLoaded]
+    [registerCanvas, onContextLoaded]
   );
-  return <canvas ref={contextRef} width={300} height={600} />;
+  return (
+    <canvas
+      ref={contextRef}
+      width={300}
+      height={600}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseMove={handleMouseMove}
+    />
+  );
 }
