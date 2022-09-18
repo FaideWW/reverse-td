@@ -9,6 +9,7 @@ import {
   BASE_TOWER_SHOT_DAMAGE,
   MAPDATA_CHARS_PER_TILE,
   MINION_PATHFINDING_OFFSET_DECAY,
+  TOWER_LASER_FADEOUT_DURATION,
 } from "./constants";
 import {
   clearCanvas,
@@ -29,6 +30,7 @@ import {
   Dimension,
   DrawDelegate,
   GameMap,
+  LaserTrail,
   ListNode,
   LoadedGameState,
   Minion,
@@ -66,6 +68,7 @@ export function loadStage(
       summonReloadRemaining: 0,
       summonReloadTime: BASE_PLAYER_SUMMON_RELOAD,
     },
+    laserTrails: null,
   };
   console.log(stage);
 
@@ -179,6 +182,7 @@ export function update(game: LoadedGameState, delta: DOMHighResTimeStamp) {
 
   updateMinions(game, delta);
   updateTowers(game, delta);
+  updateLaserTrails(game, delta);
 }
 
 export function handleInput({ stage, input }: LoadedGameState) {
@@ -266,6 +270,19 @@ export function updateMinions(
   }
 }
 
+export function shootLaser(
+  towerXY: Position,
+  minionXY: Position,
+  timeToLive: number
+): LaserTrail {
+  return {
+    sourceXY: towerXY,
+    targetXY: minionXY,
+    lifetime: timeToLive,
+    maxLifetime: timeToLive,
+  };
+}
+
 export function updateTowers(
   { stage }: LoadedGameState,
   delta: DOMHighResTimeStamp
@@ -276,9 +293,10 @@ export function updateTowers(
 
     trackMinion(stage, tower);
 
+    // Update tower attack
     if (tower.reload > 0) tower.reload -= delta / 1000;
 
-    if (tower.trackingMinionId !== null && tower.reload === 0) {
+    if (tower.trackingMinionId !== null && tower.reload <= 0) {
       const trackedMinion = llFind(
         stage.minions,
         (minion) => minion.id === tower.trackingMinionId
@@ -286,6 +304,10 @@ export function updateTowers(
       if (trackedMinion) {
         // TODO: Play attack animation/sound
         trackedMinion.health -= tower.attackDamage;
+        stage.laserTrails = llInsert(
+          stage.laserTrails,
+          shootLaser(tower.xy, trackedMinion.xy, TOWER_LASER_FADEOUT_DURATION)
+        );
         if (trackedMinion.health <= 0) {
           // TODO: Destroy minion
           stage.minions = llRemove(
@@ -302,6 +324,29 @@ export function updateTowers(
   }
 }
 
+export function updateLaserTrails(
+  { stage }: LoadedGameState,
+  delta: DOMHighResTimeStamp
+) {
+  let lastLaser = null;
+  let laserTrailNode = stage.laserTrails;
+  while (laserTrailNode !== null) {
+    const laserTrail = laserTrailNode.value;
+    laserTrail.lifetime -= delta / 1000;
+
+    if (laserTrail.lifetime <= 0) {
+      if (lastLaser === null) {
+        stage.laserTrails = laserTrailNode.next;
+      } else {
+        lastLaser.next = laserTrailNode.next;
+      }
+    }
+
+    lastLaser = laserTrailNode;
+    laserTrailNode = laserTrailNode.next;
+  }
+}
+
 export function draw(game: LoadedGameState) {
   clearCanvas(game.canvas._ctx);
 
@@ -310,6 +355,7 @@ export function draw(game: LoadedGameState) {
   drawMinions(game);
   drawTowers(game);
   drawSpawnableArea(game);
+  drawLaserTrails(game);
 
   // Debug stuff
   if (game.settings.showFlowField) {
@@ -320,6 +366,7 @@ export function draw(game: LoadedGameState) {
 const green: ColorRGBA = [0, 255, 0, 1];
 const red: ColorRGBA = [255, 0, 0, 1];
 const blue: ColorRGBA = [0, 0, 255, 1];
+const white: ColorRGBA = [255, 255, 255, 1];
 
 function drawGoal({ stage, canvas }: LoadedGameState) {
   const [x, y] = worldToCanvasTransform(stage.map.tileSize, stage.map.goal);
@@ -361,7 +408,7 @@ function drawMinions({ stage, canvas }: LoadedGameState) {
       y - minionSize / 2,
       minionSize,
       minionSize,
-      red
+      white
     );
 
     minionNode = minionNode.next;
@@ -408,6 +455,30 @@ function drawSpawnableArea({ stage, canvas }: LoadedGameState) {
     h,
     semiWhite
   );
+}
+
+function drawLaserTrails({ stage, canvas }: LoadedGameState) {
+  const fadedRed = (alpha: number): ColorRGBA => [255, 0, 0, alpha];
+  let laserTrailNode = stage.laserTrails;
+  while (laserTrailNode !== null) {
+    const laserTrail = laserTrailNode.value;
+    const [x1, y1] = worldToCanvasTransform(
+      stage.map.tileSize,
+      laserTrail.sourceXY
+    );
+    const [x2, y2] = worldToCanvasTransform(
+      stage.map.tileSize,
+      laserTrail.targetXY
+    );
+    const alpha = laserTrail.lifetime / laserTrail.maxLifetime;
+
+    drawLine(canvas._ctx, x1, y1, x2, y2, {
+      color: fadedRed(alpha),
+      lineWidth: 3,
+    });
+
+    laserTrailNode = laserTrailNode.next;
+  }
 }
 
 function drawFlowField({ stage, canvas }: LoadedGameState) {

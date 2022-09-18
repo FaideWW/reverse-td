@@ -28,6 +28,13 @@ export enum TowerType {
   Basic = "basic",
 }
 
+export interface LaserTrail {
+  sourceXY: Position;
+  targetXY: Position;
+  lifetime: number;
+  maxLifetime: number;
+}
+
 export interface Tower {
   id: string;
   xy: Position;
@@ -66,6 +73,7 @@ export interface Stage {
   map: GameMap;
   minions: ListNode<Minion> | null;
   towers: ListNode<Tower> | null;
+  laserTrails: ListNode<LaserTrail> | null;
   timeElapsed: number;
   player: PlayerState;
 }
