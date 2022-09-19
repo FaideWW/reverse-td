@@ -1,4 +1,11 @@
-import { Dimension, ListNode, Position, Rect, TileType } from "./types";
+import {
+  Dimension,
+  ListNode,
+  Position,
+  Rect,
+  ScalingValue,
+  TileType,
+} from "./types";
 import { add } from "./vector";
 
 export function canvasToWorldTransform(
@@ -104,4 +111,24 @@ export function llRemove<T>(
   }
 
   return head;
+}
+
+export function llEach<T>(
+  head: ListNode<T> | null,
+  operator: (val: T) => void
+): void {
+  if (head === null) return;
+  let node: ListNode<T> | null = head;
+  while (node !== null) {
+    operator(node.value);
+    node = node.next;
+  }
+}
+
+export function resolve(value: ScalingValue): number {
+  return value.base * value.multiplier;
+}
+
+export function makeScalingValue(base: number, multiplier = 1): ScalingValue {
+  return { base, multiplier };
 }

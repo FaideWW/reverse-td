@@ -1,10 +1,17 @@
 import produce from "immer";
 import create from "zustand";
 import { devtools } from "zustand/middleware";
-import { DEFAULT_GAME_SETTINGS } from "./constants";
+import { DEFAULT_GAME_CONFIG, DEFAULT_GAME_SETTINGS } from "./constants";
 import { initInput } from "./input";
 import { loadStage } from "./stage";
-import { GameActions, GameSettings, GameState, LoadedGameState } from "./types";
+import { llEach } from "./util";
+import {
+  GameActions,
+  GameConfig,
+  GameSettings,
+  GameState,
+  LoadedGameState,
+} from "./types";
 
 export const useGameStore = create<GameState & GameActions>()(
   devtools((set) => ({
@@ -34,10 +41,34 @@ export const useGameStore = create<GameState & GameActions>()(
         })
       ),
     settings: DEFAULT_GAME_SETTINGS,
+    config: DEFAULT_GAME_CONFIG,
     updateSettings: (newSettings: Partial<GameSettings>) =>
       set(
         produce((game: GameState) => {
           game.settings = { ...game.settings, ...newSettings };
+        })
+      ),
+    updateConfig: (newConfig: Partial<GameConfig>) =>
+      set(
+        produce((game: GameState) => {
+          game.config = { ...game.config, ...newConfig };
+          if (gameIsLoaded(game)) {
+            // Update player
+            game.stage.player.summonReloadTime.base =
+              game.config.basePlayerSummonReload;
+            // Update minions
+            llEach(game.stage.minions, (minion) => {
+              minion.maxHealth.base = game.config.baseMinionHealth;
+              minion.movementSpeed.base = game.config.baseMinionMovementSpeed;
+              minion.attackSpeed.base = game.config.baseMinionAttackSpeed;
+            });
+            // Update towers
+            llEach(game.stage.towers, (tower) => {
+              tower.range.base = game.config.baseTowerRange;
+              tower.attackDamage.base = game.config.baseTowerShotDamage;
+              tower.reloadSpeed.base = game.config.baseTowerReload;
+            });
+          }
         })
       ),
   }))
@@ -56,7 +87,7 @@ if (process.browser) {
 export function init() {
   useGameStore.setState(
     produce((game: GameState) => {
-      const [stage, update, draw] = loadStage(game.canvas.size);
+      const [stage, update, draw] = loadStage(game);
       game.stage = stage;
       game.update = update;
       game.draw = draw;
@@ -90,7 +121,7 @@ export function step(delta: DOMHighResTimeStamp) {
   );
 
   const nextGame = useGameStore.getState();
-  if (gameIsLoaded(nextGame)) nextGame.draw(nextGame);
+  if (gameIsLoaded(nextGame) && nextGame !== game) nextGame.draw(nextGame);
   // useGameStore.setState(
   //   produce((game: GameState) => {
   //     if (!game.running) return;

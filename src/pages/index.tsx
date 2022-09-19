@@ -1,31 +1,9 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import { useEffect } from "react";
-import Canvas from "../components/Canvas";
-import PlayerSummonReloadBar from "../components/PlayerSummonReloadBar";
-import Settings from "../components/Settings";
-import { init, start, step } from "../game";
+import GameScreen from "../components/GameScreen";
 
 const Home: NextPage = () => {
   // const hello = trpc.useQuery(["example.hello", { text: "from tRPC" }]);
-  const handleStartGame = () => {
-    init();
-    start();
-  };
-
-  useEffect(() => {
-    let lastFrametime = performance.now();
-    function gameLoop(frametime: DOMHighResTimeStamp) {
-      const delta = frametime - lastFrametime;
-
-      step(delta);
-
-      lastFrametime = frametime;
-      window.requestAnimationFrame(gameLoop);
-    }
-
-    window.requestAnimationFrame(gameLoop);
-  }, []);
 
   return (
     <>
@@ -39,9 +17,7 @@ const Home: NextPage = () => {
         <h1 className="text-5xl md:text-[5rem] leading-normal font-extrabold text-gray-700">
           Reverse TD
         </h1>
-        <Canvas onContextLoaded={handleStartGame} />
-        <PlayerSummonReloadBar />
-        <Settings />
+        <GameScreen />
       </main>
     </>
   );

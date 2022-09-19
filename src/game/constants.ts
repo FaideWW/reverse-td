@@ -1,4 +1,4 @@
-import { GameSettings } from "./types";
+import { GameConfig, GameSettings } from "./types";
 
 export const BASE_PLAYER_SUMMON_RELOAD = 1;
 export const BASE_MINION_HEALTH = 5;
@@ -15,4 +15,14 @@ export const MAPDATA_CHARS_PER_TILE = 2;
 
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
   showFlowField: false,
+};
+
+export const DEFAULT_GAME_CONFIG: GameConfig = {
+  basePlayerSummonReload: BASE_PLAYER_SUMMON_RELOAD,
+  baseMinionHealth: BASE_MINION_HEALTH,
+  baseMinionMovementSpeed: BASE_MINION_MOVEMENT_SPEED,
+  baseMinionAttackSpeed: BASE_MINION_ATTACK_SPEED,
+  baseTowerRange: BASE_TOWER_RANGE,
+  baseTowerShotDamage: BASE_TOWER_SHOT_DAMAGE,
+  baseTowerReload: BASE_TOWER_RELOAD,
 };

@@ -1,6 +1,6 @@
 import { Tower, Stage } from "./types";
 import { sub, len } from "./vector";
-import { llFind } from "./util";
+import { llFind, resolve } from "./util";
 import { findMostProgressedMinionInRange } from "./pathfinding";
 
 // Updates a tower's tracking information, including finding a new tracking
@@ -16,7 +16,7 @@ export function trackMinion(stage: Stage, tower: Tower): void {
     if (trackedMinion && trackedMinion.health > 0) {
       // Update facing angle
       const vector = sub(trackedMinion.xy, tower.xy);
-      if (len(vector) <= tower.range) {
+      if (len(vector) <= resolve(tower.range)) {
         tower.facingAngle = Math.atan2(vector[1], vector[0]);
         newTargetRequired = false;
       } else {
@@ -30,7 +30,7 @@ export function trackMinion(stage: Stage, tower: Tower): void {
     tower.trackingMinionId = findMostProgressedMinionInRange(
       stage,
       tower.xy,
-      tower.range
+      resolve(tower.range)
     );
   }
 }

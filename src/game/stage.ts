@@ -1,12 +1,5 @@
 import { nanoid } from "nanoid";
 import {
-  BASE_MINION_ATTACK_SPEED,
-  BASE_MINION_HEALTH,
-  BASE_MINION_MOVEMENT_SPEED,
-  BASE_PLAYER_SUMMON_RELOAD,
-  BASE_TOWER_RANGE,
-  BASE_TOWER_RELOAD,
-  BASE_TOWER_SHOT_DAMAGE,
   MAPDATA_CHARS_PER_TILE,
   MINION_PATHFINDING_OFFSET_DECAY,
   TOWER_LASER_FADEOUT_DURATION,
@@ -29,7 +22,9 @@ import {
   ColorRGBA,
   Dimension,
   DrawDelegate,
+  GameConfig,
   GameMap,
+  GameState,
   LaserTrail,
   ListNode,
   LoadedGameState,
@@ -48,17 +43,20 @@ import {
   llFind,
   llInsert,
   llRemove,
+  makeScalingValue,
   pointInRect,
   posToStr,
   strToPos,
   worldToCanvasTransform,
+  resolve,
 } from "./util";
 import { add, len, normalize, sdiv, smul, sub, vmul } from "./vector";
 
-export function loadStage(
-  canvasSize: Dimension
-): [Stage, UpdateDelegate, DrawDelegate] {
-  const [map, towers] = importMap(canvasSize);
+export function loadStage({
+  canvas,
+  config,
+}: GameState): [Stage, UpdateDelegate, DrawDelegate] {
+  const [map, towers] = importMap(canvas.size, config);
   const stage: Stage = {
     minions: null,
     towers,
@@ -66,7 +64,7 @@ export function loadStage(
     timeElapsed: 0,
     player: {
       summonReloadRemaining: 0,
-      summonReloadTime: BASE_PLAYER_SUMMON_RELOAD,
+      summonReloadTime: makeScalingValue(config.basePlayerSummonReload),
     },
     laserTrails: null,
   };
@@ -90,10 +88,10 @@ function getTile(tileId: number): TileType {
   }
 }
 
-export function importMap([canvasWidth, canvasHeight]: Dimension): [
-  GameMap,
-  ListNode<Tower> | null
-] {
+export function importMap(
+  [canvasWidth, canvasHeight]: Dimension,
+  config: GameConfig
+): [GameMap, ListNode<Tower> | null] {
   const trimmedMap = testMap.trim().split("\n");
   const tileMap: Record<string, TileType> = {};
   const rows = trimmedMap.length;
@@ -111,7 +109,10 @@ export function importMap([canvasWidth, canvasHeight]: Dimension): [
       const tile = getTile(Number(tileChar));
 
       if (tile === TileType.WALL && Number(tileMetadata) === 1) {
-        towerListHead = llInsert(towerListHead, createTower([x / 2, y]));
+        towerListHead = llInsert(
+          towerListHead,
+          createTower([x / 2, y], config)
+        );
       }
 
       tileMap[posToStr([x / 2, y])] = tile;
@@ -138,7 +139,7 @@ export function importMap([canvasWidth, canvasHeight]: Dimension): [
   ];
 }
 
-export function createMinion(pos: Position): Minion {
+export function createMinion(pos: Position, config: GameConfig): Minion {
   // Ensure we don't copy a reference into the minion
   const xy: Position = [pos[0], pos[1]];
   const tileCenter: Position = [Math.round(pos[0]), Math.round(pos[1])];
@@ -150,10 +151,10 @@ export function createMinion(pos: Position): Minion {
   return {
     id: nanoid(),
     xy,
-    health: BASE_MINION_HEALTH,
-    maxHealth: BASE_MINION_HEALTH,
-    movementSpeed: BASE_MINION_MOVEMENT_SPEED,
-    attackSpeed: BASE_MINION_ATTACK_SPEED,
+    health: config.baseMinionHealth,
+    maxHealth: makeScalingValue(config.baseMinionHealth),
+    movementSpeed: makeScalingValue(config.baseMinionMovementSpeed),
+    attackSpeed: makeScalingValue(config.baseMinionAttackSpeed),
     pathfinding: {
       tileOffset,
       lastWaypoint: null,
@@ -162,15 +163,15 @@ export function createMinion(pos: Position): Minion {
   };
 }
 
-export function createTower(xy: Position): Tower {
+export function createTower(xy: Position, config: GameConfig): Tower {
   return {
     id: nanoid(),
     xy,
     type: TowerType.Basic,
-    range: BASE_TOWER_RANGE,
+    range: makeScalingValue(config.baseTowerRange),
     reload: 0,
-    reloadSpeed: BASE_TOWER_RELOAD,
-    attackDamage: BASE_TOWER_SHOT_DAMAGE,
+    reloadSpeed: makeScalingValue(config.baseTowerReload),
+    attackDamage: makeScalingValue(config.baseTowerShotDamage),
     trackingMinionId: null,
     facingAngle: 0,
   };
@@ -186,7 +187,7 @@ export function update(game: LoadedGameState, delta: DOMHighResTimeStamp) {
   updateLaserTrails(game, delta);
 }
 
-export function handleInput({ stage, input }: LoadedGameState) {
+export function handleInput({ stage, input, config }: LoadedGameState) {
   if (input.mouse.left) {
     if (stage.player.summonReloadRemaining === 0) {
       // Clearing the input inside the summon branch gives a minor gamefeel
@@ -199,12 +200,14 @@ export function handleInput({ stage, input }: LoadedGameState) {
       );
       if (!pointInRect(worldMouse, stage.map.spawnableArea)) return;
 
-      const minion = createMinion(worldMouse);
+      const minion = createMinion(worldMouse, config);
       minion.pathfinding.lastWaypoint = worldMouse;
       minion.pathfinding.nextWaypoint = findNextWaypoint(stage.map, minion.xy);
       stage.minions = llInsert(stage.minions, minion);
 
-      stage.player.summonReloadRemaining = stage.player.summonReloadTime;
+      stage.player.summonReloadRemaining = resolve(
+        stage.player.summonReloadTime
+      );
     }
   }
 }
@@ -232,7 +235,7 @@ export function updateMinions(
     );
     const direction = sub(waypointPosition, minion.xy);
 
-    const movement = smul(normalize(direction), minion.movementSpeed);
+    const movement = smul(normalize(direction), resolve(minion.movementSpeed));
     const increment = smul(movement, delta / 1000);
 
     let finalMovement = increment;
@@ -257,7 +260,7 @@ export function updateMinions(
 
         const nextMovement = smul(
           normalize(nextDirection),
-          minion.movementSpeed
+          resolve(minion.movementSpeed)
         );
         const nextIncrement = smul(nextMovement, remaining);
 
@@ -304,7 +307,7 @@ export function updateTowers(
       );
       if (trackedMinion) {
         // TODO: Play attack animation/sound
-        trackedMinion.health -= tower.attackDamage;
+        trackedMinion.health -= resolve(tower.attackDamage);
         stage.laserTrails = llInsert(
           stage.laserTrails,
           shootLaser(tower.xy, trackedMinion.xy, TOWER_LASER_FADEOUT_DURATION)
@@ -317,7 +320,7 @@ export function updateTowers(
           );
           tower.trackingMinionId = null;
         }
-        tower.reload = tower.reloadSpeed;
+        tower.reload = resolve(tower.reloadSpeed);
       }
     }
 
@@ -410,12 +413,14 @@ function drawMinions(game: LoadedGameState) {
       { fill: white }
     );
 
-    if (minion.health < minion.maxHealth) {
+    const minionMaxHealth = resolve(minion.maxHealth);
+
+    if (minion.health < minionMaxHealth) {
       drawHealthBarPx(
         game,
         add([x, y], [0, minionSize + 2]),
         [15, 5],
-        minion.health / minion.maxHealth
+        minion.health / minionMaxHealth
       );
     }
 
