@@ -28,6 +28,8 @@ export interface Minion {
   movementSpeed: ScalingValue;
   attackSpeed: ScalingValue;
   pathfinding: MinionPathfindingState;
+  dataGain: ScalingValue;
+  distanceTravelled: number;
 }
 
 export enum TowerType {
@@ -81,7 +83,6 @@ export interface Stage {
   towers: ListNode<Tower> | null;
   laserTrails: ListNode<LaserTrail> | null;
   timeElapsed: number;
-  player: PlayerState;
 }
 
 export interface Canvas {
@@ -93,8 +94,14 @@ export interface LoadedCanvas extends Canvas {
   _ctx: CanvasRenderingContext2D;
 }
 
+export interface ResourceState {
+  currentData: number;
+  maxData: ScalingValue;
+}
+
 export interface GameState {
   stage: Stage | null;
+  player: PlayerState;
   running: boolean;
   input: InputState;
   update: UpdateDelegate;
@@ -110,12 +117,14 @@ export interface GameSettings {
 
 export interface GameConfig {
   basePlayerSummonReload: number;
+  basePlayerMaxData: number;
   baseMinionHealth: number;
   baseMinionMovementSpeed: number;
   baseMinionAttackSpeed: number;
   baseTowerRange: number;
   baseTowerShotDamage: number;
   baseTowerReload: number;
+  baseDataGainedPerTileTravelled: number;
 }
 
 export interface LoadedGameState extends GameState {
@@ -136,6 +145,7 @@ export interface GameActions {
 export interface PlayerState {
   summonReloadRemaining: number;
   summonReloadTime: ScalingValue;
+  resources: ResourceState;
 }
 
 export interface MouseState {

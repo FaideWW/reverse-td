@@ -17,6 +17,7 @@ import {
   computeSpawnableArea,
   findNextWaypoint,
 } from "./pathfinding";
+import { computeMinionDataGain } from "./resources";
 import { trackMinion } from "./tower";
 import {
   ColorRGBA,
@@ -46,9 +47,9 @@ import {
   makeScalingValue,
   pointInRect,
   posToStr,
+  resolve,
   strToPos,
   worldToCanvasTransform,
-  resolve,
 } from "./util";
 import { add, len, normalize, sdiv, smul, sub, vmul } from "./vector";
 
@@ -62,10 +63,6 @@ export function loadStage({
     towers,
     map,
     timeElapsed: 0,
-    player: {
-      summonReloadRemaining: 0,
-      summonReloadTime: makeScalingValue(config.basePlayerSummonReload),
-    },
     laserTrails: null,
   };
   console.log(stage);
@@ -160,6 +157,8 @@ export function createMinion(pos: Position, config: GameConfig): Minion {
       lastWaypoint: null,
       nextWaypoint: null,
     },
+    dataGain: makeScalingValue(config.baseDataGainedPerTileTravelled),
+    distanceTravelled: 0,
   };
 }
 
@@ -180,16 +179,16 @@ export function createTower(xy: Position, config: GameConfig): Tower {
 export function update(game: LoadedGameState, delta: DOMHighResTimeStamp) {
   handleInput(game);
 
-  handlePlayer(game.stage.player, delta);
+  handlePlayer(game.player, delta);
 
   updateMinions(game, delta);
   updateTowers(game, delta);
   updateLaserTrails(game, delta);
 }
 
-export function handleInput({ stage, input, config }: LoadedGameState) {
+export function handleInput({ stage, player, input, config }: LoadedGameState) {
   if (input.mouse.left) {
-    if (stage.player.summonReloadRemaining === 0) {
+    if (player.summonReloadRemaining === 0) {
       // Clearing the input inside the summon branch gives a minor gamefeel
       // improvement, allowing you to buffer a click slightly before the reload
       // timer expires and have the spawn trigger immediately.
@@ -205,9 +204,7 @@ export function handleInput({ stage, input, config }: LoadedGameState) {
       minion.pathfinding.nextWaypoint = findNextWaypoint(stage.map, minion.xy);
       stage.minions = llInsert(stage.minions, minion);
 
-      stage.player.summonReloadRemaining = resolve(
-        stage.player.summonReloadTime
-      );
+      player.summonReloadRemaining = resolve(player.summonReloadTime);
     }
   }
 }
@@ -269,6 +266,9 @@ export function updateMinions(
     }
 
     minion.xy = add(minion.xy, finalMovement);
+    if (!pointInRect(minion.xy, stage.map.spawnableArea)) {
+      minion.distanceTravelled += len(finalMovement);
+    }
 
     minionNode = minionNode.next;
   }
@@ -288,7 +288,7 @@ export function shootLaser(
 }
 
 export function updateTowers(
-  { stage }: LoadedGameState,
+  { stage, player }: LoadedGameState,
   delta: DOMHighResTimeStamp
 ) {
   let towerNode = stage.towers;
@@ -314,6 +314,20 @@ export function updateTowers(
         );
         if (trackedMinion.health <= 0) {
           // TODO: Destroy minion
+
+          console.log("Minion died!", JSON.stringify(trackedMinion, null, 2));
+          player.resources.currentData += computeMinionDataGain(trackedMinion);
+          console.log(
+            `Gained ${computeMinionDataGain(trackedMinion)} data (${
+              trackedMinion.distanceTravelled
+            } tiles travelled)`
+          );
+          if (
+            player.resources.currentData > resolve(player.resources.maxData)
+          ) {
+            player.resources.currentData = resolve(player.resources.maxData);
+          }
+
           stage.minions = llRemove(
             stage.minions,
             (minion) => minion.id === trackedMinion.id

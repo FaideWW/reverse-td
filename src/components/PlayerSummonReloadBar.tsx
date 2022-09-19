@@ -4,11 +4,9 @@ import { resolve } from "../game/util";
 
 export default function PlayerSummonReloadBar() {
   const playerReloadRemaining = useGameStore(
-    (game) => game.stage?.player.summonReloadRemaining
+    (game) => game.player.summonReloadRemaining
   );
-  const playerReloadMax = useGameStore(
-    (game) => game.stage?.player.summonReloadTime
-  );
+  const playerReloadMax = useGameStore((game) => game.player.summonReloadTime);
 
   const resolvedPlayerReloadMax = useMemo(
     () => (playerReloadMax ? resolve(playerReloadMax) : 1),
