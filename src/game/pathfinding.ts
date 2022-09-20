@@ -1,4 +1,5 @@
-import { GameMap, Minion, Position, Rect, Stage, TileType } from "./types";
+import type { GameMap, Minion, Position, Rect, Stage } from "./types";
+import { TileType } from "./types";
 import { findTile, posToStr } from "./util";
 import { dot, len, normalize, sub } from "./vector";
 

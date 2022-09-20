@@ -1,7 +1,7 @@
 import produce from "immer";
 import { MouseEvent } from "react";
 import { useGameStore } from ".";
-import { InputState, GameState } from "./types";
+import type { InputState, GameState } from "./types";
 
 enum MouseButtons {
   LEFT = 0,

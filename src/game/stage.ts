@@ -1,9 +1,4 @@
-import { nanoid } from "nanoid";
-import {
-  MAPDATA_CHARS_PER_TILE,
-  MINION_PATHFINDING_OFFSET_DECAY,
-  TOWER_LASER_FADEOUT_DURATION,
-} from "./constants";
+import { GOAL_TOWER_ID, MAPDATA_CHARS_PER_TILE } from "./constants";
 import {
   clearCanvas,
   drawCircle,
@@ -11,15 +6,16 @@ import {
   drawLineGroup,
   drawRect,
 } from "./draw";
-import testMap from "./maps/testMap";
+import testMapEasy from "./maps/testMapEasy";
+import { createMinion, updateMinion } from "./minion";
 import {
   computeFields,
   computeSpawnableArea,
   findNextWaypoint,
 } from "./pathfinding";
-import { computeMinionDataGain } from "./resources";
-import { trackMinion } from "./tower";
-import {
+import { updatePlayer } from "./player";
+import { createTower, updateTower } from "./tower";
+import type {
   ColorRGBA,
   Dimension,
   DrawDelegate,
@@ -29,35 +25,30 @@ import {
   LaserTrail,
   ListNode,
   LoadedGameState,
-  Minion,
   PlayerState,
   Position,
   Stage,
-  TileType,
   Tower,
-  TowerType,
   UpdateDelegate,
 } from "./types";
+import { TileType, TowerType } from "./types";
 import {
   canvasToWorldTransform,
-  findTile,
-  llFind,
   llInsert,
   llRemove,
-  makeScalingValue,
   pointInRect,
   posToStr,
   resolve,
   strToPos,
   worldToCanvasTransform,
 } from "./util";
-import { add, len, normalize, sdiv, smul, sub, vmul } from "./vector";
+import { add, sdiv, smul, sub, vmul } from "./vector";
 
 export function loadStage({
   canvas,
   config,
 }: GameState): [Stage, UpdateDelegate, DrawDelegate] {
-  const [map, towers] = importMap(canvas.size, config);
+  const [map, towers] = importMap(testMapEasy, canvas.size, config);
   const stage: Stage = {
     minions: null,
     towers,
@@ -86,13 +77,16 @@ function getTile(tileId: number): TileType {
 }
 
 export function importMap(
+  mapData: string,
   [canvasWidth, canvasHeight]: Dimension,
   config: GameConfig
 ): [GameMap, ListNode<Tower> | null] {
-  const trimmedMap = testMap.trim().split("\n");
+  const trimmedMap = mapData.trim().split("\n");
   const tileMap: Record<string, TileType> = {};
   const rows = trimmedMap.length;
   const cols = (trimmedMap[0]?.length || 0) / MAPDATA_CHARS_PER_TILE;
+
+  let goalXY: Position | null = null;
 
   let towerListHead: ListNode<Tower> | null = null;
 
@@ -108,7 +102,16 @@ export function importMap(
       if (tile === TileType.WALL && Number(tileMetadata) === 1) {
         towerListHead = llInsert(
           towerListHead,
-          createTower([x / 2, y], config)
+          createTower({ type: TowerType.Basic, xy: [x / 2, y] }, config)
+        );
+      } else if (tile === TileType.GOAL) {
+        goalXY = [x / 2, y];
+        towerListHead = llInsert(
+          towerListHead,
+          createTower(
+            { id: GOAL_TOWER_ID, type: TowerType.Goal, xy: [x / 2, y] },
+            config
+          )
         );
       }
 
@@ -116,10 +119,12 @@ export function importMap(
     }
   }
 
-  const goal = findTile(tileMap, TileType.GOAL);
-  if (!goal) throw new Error("No goal found on map");
+  if (!goalXY) throw new Error("No goal found on map");
 
-  const [flowField, distanceField] = computeFields(tileMap, goal, [cols, rows]);
+  const [flowField, distanceField] = computeFields(tileMap, goalXY, [
+    cols,
+    rows,
+  ]);
   const spawnableArea = computeSpawnableArea(tileMap, [cols, rows]);
 
   return [
@@ -127,7 +132,7 @@ export function importMap(
       tiles: tileMap,
       mapSize: [cols, rows],
       tileSize: [canvasWidth / cols, canvasHeight / rows],
-      goal,
+      goal: goalXY,
       flowField,
       distanceField,
       spawnableArea,
@@ -136,50 +141,10 @@ export function importMap(
   ];
 }
 
-export function createMinion(pos: Position, config: GameConfig): Minion {
-  // Ensure we don't copy a reference into the minion
-  const xy: Position = [pos[0], pos[1]];
-  const tileCenter: Position = [Math.round(pos[0]), Math.round(pos[1])];
-  const tileOffset: Position = smul(
-    sub(xy, tileCenter),
-    MINION_PATHFINDING_OFFSET_DECAY
-  );
-  console.log("minion", xy, tileOffset);
-  return {
-    id: nanoid(),
-    xy,
-    health: config.baseMinionHealth,
-    maxHealth: makeScalingValue(config.baseMinionHealth),
-    movementSpeed: makeScalingValue(config.baseMinionMovementSpeed),
-    attackSpeed: makeScalingValue(config.baseMinionAttackSpeed),
-    pathfinding: {
-      tileOffset,
-      lastWaypoint: null,
-      nextWaypoint: null,
-    },
-    dataGain: makeScalingValue(config.baseDataGainedPerTileTravelled),
-    distanceTravelled: 0,
-  };
-}
-
-export function createTower(xy: Position, config: GameConfig): Tower {
-  return {
-    id: nanoid(),
-    xy,
-    type: TowerType.Basic,
-    range: makeScalingValue(config.baseTowerRange),
-    reload: 0,
-    reloadSpeed: makeScalingValue(config.baseTowerReload),
-    attackDamage: makeScalingValue(config.baseTowerShotDamage),
-    trackingMinionId: null,
-    facingAngle: 0,
-  };
-}
-
 export function update(game: LoadedGameState, delta: DOMHighResTimeStamp) {
   handleInput(game);
 
-  handlePlayer(game.player, delta);
+  updatePlayer(game, delta);
 
   updateMinions(game, delta);
   updateTowers(game, delta);
@@ -188,7 +153,7 @@ export function update(game: LoadedGameState, delta: DOMHighResTimeStamp) {
 
 export function handleInput({ stage, player, input, config }: LoadedGameState) {
   if (input.mouse.left) {
-    if (player.summonReloadRemaining === 0) {
+    if (player.stats.summonReload <= 0) {
       // Clearing the input inside the summon branch gives a minor gamefeel
       // improvement, allowing you to buffer a click slightly before the reload
       // timer expires and have the spawn trigger immediately.
@@ -199,75 +164,29 @@ export function handleInput({ stage, player, input, config }: LoadedGameState) {
       );
       if (!pointInRect(worldMouse, stage.map.spawnableArea)) return;
 
-      const minion = createMinion(worldMouse, config);
+      const minion = createMinion({ xy: worldMouse }, config);
       minion.pathfinding.lastWaypoint = worldMouse;
       minion.pathfinding.nextWaypoint = findNextWaypoint(stage.map, minion.xy);
       stage.minions = llInsert(stage.minions, minion);
 
-      player.summonReloadRemaining = resolve(player.summonReloadTime);
+      player.stats.summonReload += player.stats.summonReloadTime;
     }
   }
 }
 
-export function handlePlayer(player: PlayerState, delta: DOMHighResTimeStamp) {
-  player.summonReloadRemaining -= delta / 1000;
-  if (player.summonReloadRemaining < 0) player.summonReloadRemaining = 0;
-}
-
 export function updateMinions(
-  { stage }: LoadedGameState,
+  game: LoadedGameState,
   delta: DOMHighResTimeStamp
 ) {
+  const { stage } = game;
   let minionNode = stage.minions;
   while (minionNode !== null) {
     const minion = minionNode.value;
 
-    // If we don't have a next waypoint, assume we are done.
-    if (!minion.pathfinding.nextWaypoint) continue;
+    const shouldDelete = updateMinion(minion, game, delta);
 
-    // Follow the waypoint towards the goal.
-    const waypointPosition = add(
-      minion.pathfinding.nextWaypoint,
-      minion.pathfinding.tileOffset
-    );
-    const direction = sub(waypointPosition, minion.xy);
-
-    const movement = smul(normalize(direction), resolve(minion.movementSpeed));
-    const increment = smul(movement, delta / 1000);
-
-    let finalMovement = increment;
-
-    const lenDirection = len(direction);
-    const lenIncrement = len(increment);
-    // We've reached the waypoint, find the next one and add the remaining
-    // delta movement towards the new waypoint
-    if (lenDirection <= lenIncrement) {
-      finalMovement = direction;
-      const remaining = lenIncrement - lenDirection;
-
-      minion.pathfinding.lastWaypoint = minion.pathfinding.nextWaypoint;
-      minion.pathfinding.nextWaypoint = findNextWaypoint(stage.map, minion.xy);
-
-      if (minion.pathfinding.nextWaypoint !== null) {
-        const nextWaypointPosition = add(
-          minion.pathfinding.nextWaypoint,
-          minion.pathfinding.tileOffset
-        );
-        const nextDirection = sub(nextWaypointPosition, minion.xy);
-
-        const nextMovement = smul(
-          normalize(nextDirection),
-          resolve(minion.movementSpeed)
-        );
-        const nextIncrement = smul(nextMovement, remaining);
-
-        finalMovement = add(finalMovement, nextIncrement);
-      }
-    }
-
-    minion.xy = add(minion.xy, finalMovement);
-    if (!pointInRect(minion.xy, stage.map.spawnableArea)) {
-      minion.distanceTravelled += len(finalMovement);
+    if (shouldDelete) {
+      stage.minions = llRemove(stage.minions, (m) => m.id === minion.id);
     }
 
     minionNode = minionNode.next;
@@ -288,56 +207,19 @@ export function shootLaser(
 }
 
 export function updateTowers(
-  { stage, player }: LoadedGameState,
+  game: LoadedGameState,
   delta: DOMHighResTimeStamp
 ) {
+  const { stage } = game;
   let towerNode = stage.towers;
   while (towerNode !== null) {
     const tower = towerNode.value;
 
-    trackMinion(stage, tower);
+    const shouldDelete = updateTower(tower, game, delta);
 
-    // Update tower attack
-    if (tower.reload > 0) tower.reload -= delta / 1000;
-
-    if (tower.trackingMinionId !== null && tower.reload <= 0) {
-      const trackedMinion = llFind(
-        stage.minions,
-        (minion) => minion.id === tower.trackingMinionId
-      );
-      if (trackedMinion) {
-        // TODO: Play attack animation/sound
-        trackedMinion.health -= resolve(tower.attackDamage);
-        stage.laserTrails = llInsert(
-          stage.laserTrails,
-          shootLaser(tower.xy, trackedMinion.xy, TOWER_LASER_FADEOUT_DURATION)
-        );
-        if (trackedMinion.health <= 0) {
-          // TODO: Destroy minion
-
-          console.log("Minion died!", JSON.stringify(trackedMinion, null, 2));
-          player.resources.currentData += computeMinionDataGain(trackedMinion);
-          console.log(
-            `Gained ${computeMinionDataGain(trackedMinion)} data (${
-              trackedMinion.distanceTravelled
-            } tiles travelled)`
-          );
-          if (
-            player.resources.currentData > resolve(player.resources.maxData)
-          ) {
-            player.resources.currentData = resolve(player.resources.maxData);
-          }
-
-          stage.minions = llRemove(
-            stage.minions,
-            (minion) => minion.id === trackedMinion.id
-          );
-          tower.trackingMinionId = null;
-        }
-        tower.reload = resolve(tower.reloadSpeed);
-      }
+    if (shouldDelete) {
+      stage.towers = llRemove(stage.towers, (t) => t.id === tower.id);
     }
-
     towerNode = towerNode.next;
   }
 }
@@ -368,7 +250,6 @@ export function updateLaserTrails(
 export function draw(game: LoadedGameState) {
   clearCanvas(game.canvas._ctx);
 
-  drawGoal(game);
   drawWalls(game);
   drawMinions(game);
   drawTowers(game);
@@ -385,14 +266,8 @@ const red: ColorRGBA = [255, 0, 0, 1];
 const green: ColorRGBA = [0, 255, 0, 1];
 const blue: ColorRGBA = [0, 0, 255, 1];
 const white: ColorRGBA = [255, 255, 255, 1];
-
-function drawGoal({ stage, canvas }: LoadedGameState) {
-  const [x, y] = worldToCanvasTransform(stage.map.tileSize, stage.map.goal);
-  const [tileW, tileH] = stage.map.tileSize;
-  drawRect(canvas._ctx, x - tileW / 2, y - tileH / 2, tileW, tileH, {
-    fill: green,
-  });
-}
+const cyan: ColorRGBA = [0, 255, 255, 1];
+const black: ColorRGBA = [0, 0, 0, 1];
 
 function drawWalls({ stage, canvas }: LoadedGameState) {
   const { map } = stage;
@@ -427,14 +302,12 @@ function drawMinions(game: LoadedGameState) {
       { fill: white }
     );
 
-    const minionMaxHealth = resolve(minion.maxHealth);
-
-    if (minion.health < minionMaxHealth) {
+    if (minion.stats.health < minion.stats.maxHealth) {
       drawHealthBarPx(
         game,
         add([x, y], [0, minionSize + 2]),
         [15, 5],
-        minion.health / minionMaxHealth
+        minion.stats.health / minion.stats.maxHealth
       );
     }
 
@@ -461,26 +334,48 @@ function drawHealthBarPx(
   });
 }
 
-const cyan: ColorRGBA = [0, 255, 255, 1];
-const black: ColorRGBA = [0, 0, 0, 1];
-function drawTowers({ stage, canvas }: LoadedGameState) {
+function drawTowers(game: LoadedGameState) {
+  const { stage, canvas } = game;
   let towerNode = stage.towers;
   while (towerNode !== null) {
     const tower = towerNode.value;
-    const [x, y] = worldToCanvasTransform(stage.map.tileSize, tower.xy);
-    const towerSize = 8;
-    drawCircle(canvas._ctx, x, y, towerSize, cyan);
+    switch (tower.type) {
+      case TowerType.Basic:
+        const [x, y] = worldToCanvasTransform(stage.map.tileSize, tower.xy);
+        const towerSize = 8;
+        drawCircle(canvas._ctx, x, y, towerSize, cyan);
 
-    const turretVector = smul(
-      [Math.cos(tower.facingAngle), Math.sin(tower.facingAngle)],
-      12
-    );
-    drawLine(canvas._ctx, x, y, x + turretVector[0], y + turretVector[1], {
-      color: black,
-      lineWidth: 3,
-    });
+        const turretVector = smul(
+          [Math.cos(tower.facingAngle), Math.sin(tower.facingAngle)],
+          12
+        );
+        drawLine(canvas._ctx, x, y, x + turretVector[0], y + turretVector[1], {
+          color: black,
+          lineWidth: 3,
+        });
+        break;
+      case TowerType.Goal:
+        drawGoal(game, tower);
+        break;
+    }
 
     towerNode = towerNode.next;
+  }
+}
+
+function drawGoal(game: LoadedGameState, goal: Tower) {
+  const { stage, canvas } = game;
+  const [x, y] = worldToCanvasTransform(stage.map.tileSize, stage.map.goal);
+  const [tileW, tileH] = stage.map.tileSize;
+  drawRect(canvas._ctx, x - tileW / 2, y - tileH / 2, tileW, tileH, {
+    fill: green,
+  });
+
+  // Draw health bar
+  const maxHealth = goal.stats.maxHealth;
+  const healthRatio = goal.stats.health / maxHealth;
+  if (healthRatio < 1) {
+    drawHealthBarPx(game, [x, y], [15, 5], healthRatio);
   }
 }
 

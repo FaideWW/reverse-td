@@ -5,7 +5,7 @@ import { DEFAULT_GAME_CONFIG, DEFAULT_GAME_SETTINGS } from "./constants";
 import { initInput } from "./input";
 import { initPlayer } from "./player";
 import { loadStage } from "./stage";
-import {
+import type {
   GameActions,
   GameConfig,
   GameSettings,
@@ -56,23 +56,25 @@ export const useGameStore = create<GameState & GameActions>()(
         set(
           produce((game: GameState) => {
             game.config = { ...game.config, ...newConfig };
-            // Update player
-            game.player.summonReloadTime.base =
-              game.config.basePlayerSummonReload;
-            if (gameIsLoaded(game)) {
-              // Update minions
-              llEach(game.stage.minions, (minion) => {
-                minion.maxHealth.base = game.config.baseMinionHealth;
-                minion.movementSpeed.base = game.config.baseMinionMovementSpeed;
-                minion.attackSpeed.base = game.config.baseMinionAttackSpeed;
-              });
-              // Update towers
-              llEach(game.stage.towers, (tower) => {
-                tower.range.base = game.config.baseTowerRange;
-                tower.attackDamage.base = game.config.baseTowerShotDamage;
-                tower.reloadSpeed.base = game.config.baseTowerReload;
-              });
-            }
+            // // Update player
+            // game.player.summonReloadTime.base =
+            //   game.config.basePlayerSummonReload;
+            // if (gameIsLoaded(game)) {
+            //   // Update minions
+            //   llEach(game.stage.minions, (minion) => {
+            //     minion.stats.maxHealth.base = game.config.baseMinionHealth;
+            //     minion.stats.movementSpeed.base =
+            //       game.config.baseMinionMovementSpeed;
+            //     minion.stats.attackSpeed.base =
+            //       game.config.baseMinionAttackSpeed;
+            //   });
+            //   // Update towers
+            //   llEach(game.stage.towers, (tower) => {
+            //     tower.stats.range.base = game.config.baseTowerRange;
+            //     tower.stats.attackDamage.base = game.config.baseTowerShotDamage;
+            //     tower.stats.reloadSpeed.base = game.config.baseTowerReload;
+            //   });
+            // }
           })
         ),
     };

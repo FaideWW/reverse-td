@@ -1,8 +1,10 @@
-import { GameConfig, Minion, ResourceState } from "./types";
+import type { GameConfig, Minion, ResourceState } from "./types";
 import { makeScalingValue, resolve } from "./util";
 
 export function initResources(config: GameConfig): ResourceState {
   return {
+    currentMemory: 0,
+    maxMemory: makeScalingValue(config.basePlayerMaxMemory),
     currentData: 0,
     maxData: makeScalingValue(config.basePlayerMaxData),
   };

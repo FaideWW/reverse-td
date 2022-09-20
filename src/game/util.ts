@@ -1,4 +1,4 @@
-import {
+import type {
   Dimension,
   ListNode,
   Position,
@@ -129,6 +129,24 @@ export function resolve(value: ScalingValue): number {
   return value.base * value.multiplier;
 }
 
-export function makeScalingValue(base: number, multiplier = 1): ScalingValue {
+export function makeScalingValue(base = 0, multiplier = 1): ScalingValue {
   return { base, multiplier };
+}
+
+export function tileRect(xy: Position): Rect {
+  return {
+    xy: [xy[0] - 0.5, xy[1] - 0.5],
+    size: [1, 1],
+  };
+}
+
+export function resolveModifiedStat(
+  baseValue: number,
+  ...modifiers: ScalingValue[]
+): number {
+  const [totalAdded, totalCoefficient] = modifiers.reduce(
+    ([sum, product], mod) => [sum + mod.base, product * mod.multiplier],
+    [0, 1]
+  );
+  return (baseValue + totalAdded) * totalCoefficient;
 }

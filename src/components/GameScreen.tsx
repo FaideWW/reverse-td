@@ -3,7 +3,7 @@ import { init, start, step } from "../game";
 import Canvas from "./Canvas";
 import DevConsole from "./DevConsole";
 import PlayerSummonReloadBar from "./PlayerSummonReloadBar";
-import ResourceTracker from "./ResourceTracker";
+import ResourceDisplay from "./ResourceDisplay";
 
 import Settings from "./Settings";
 
@@ -32,7 +32,7 @@ export default function GameScreen() {
       <div className="grow">
         {process.env.NODE_ENV === "development" && <DevConsole />}
         <Settings />
-        <ResourceTracker />
+        <ResourceDisplay />
       </div>
       <div className="flex-none">
         <Canvas onContextLoaded={handleStartGame} />

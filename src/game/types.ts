@@ -1,3 +1,5 @@
+export type MakeOptional<T, K extends keyof T> = Partial<T> & Pick<T, K>;
+
 export type ColorRGBA = [number, number, number, number];
 
 export type Vector = [number, number];
@@ -20,19 +22,38 @@ export interface MinionPathfindingState {
   nextWaypoint: Position | null;
 }
 
+export enum MinionBehavior {
+  Idle,
+  Staging,
+  Marching,
+  Attacking,
+}
+
+export interface MinionStats {
+  health: number;
+  maxHealth: number;
+  movementSpeed: number;
+  attackSpeed: number;
+  attackDamage: number;
+  attackRange: number;
+  reload: number;
+  dataGainedPerTileTravelled: number;
+}
+
 export interface Minion {
   id: string;
   xy: Position;
-  health: number;
-  maxHealth: ScalingValue;
-  movementSpeed: ScalingValue;
-  attackSpeed: ScalingValue;
+  stats: MinionStats;
+  localStatMods: MinionStatModifiers;
   pathfinding: MinionPathfindingState;
   dataGain: ScalingValue;
   distanceTravelled: number;
+  behavior: MinionBehavior;
+  attackTargetId: string | null;
 }
 
 export enum TowerType {
+  Goal = "goal",
   Basic = "basic",
 }
 
@@ -43,14 +64,21 @@ export interface LaserTrail {
   maxLifetime: number;
 }
 
+export interface TowerStats {
+  reload: number;
+  health: number;
+  maxHealth: number;
+  range: number;
+  reloadSpeed: number;
+  attackDamage: number;
+}
+
 export interface Tower {
   id: string;
   xy: Position;
   type: TowerType;
-  range: ScalingValue;
-  reload: number;
-  reloadSpeed: ScalingValue;
-  attackDamage: ScalingValue;
+  stats: TowerStats;
+  localStatMods: TowerStatModifiers;
   trackingMinionId: string | null;
   facingAngle: number;
 }
@@ -95,8 +123,50 @@ export interface LoadedCanvas extends Canvas {
 }
 
 export interface ResourceState {
+  currentMemory: number;
+  maxMemory: ScalingValue;
   currentData: number;
   maxData: ScalingValue;
+}
+
+export interface PlayerStatModifiers {
+  summonReload: ScalingValue;
+  maxData: ScalingValue;
+  maxMemory: ScalingValue;
+}
+
+export interface MinionStatModifiers {
+  memoryUsage: ScalingValue;
+  maxHealth: ScalingValue;
+  movementSpeed: ScalingValue;
+  attackSpeed: ScalingValue;
+  attackDamage: ScalingValue;
+  attackRange: ScalingValue;
+  dataGainedPerTileTravelled: ScalingValue;
+}
+
+export interface TowerStatModifiers {
+  maxHealth: ScalingValue;
+  range: ScalingValue;
+  reloadSpeed: ScalingValue;
+  attackDamage: ScalingValue;
+}
+
+export interface GlobalStatModifiers {
+  player: PlayerStatModifiers;
+  minion: MinionStatModifiers;
+  tower: TowerStatModifiers;
+}
+
+export interface PlayerStats {
+  summonReload: number;
+  summonReloadTime: number;
+}
+
+export interface PlayerState {
+  stats: PlayerStats;
+  resources: ResourceState;
+  globalMods: GlobalStatModifiers;
 }
 
 export interface GameState {
@@ -108,6 +178,7 @@ export interface GameState {
   draw: DrawDelegate;
   canvas: Canvas;
   settings: GameSettings;
+
   config: GameConfig;
 }
 
@@ -118,11 +189,16 @@ export interface GameSettings {
 export interface GameConfig {
   basePlayerSummonReload: number;
   basePlayerMaxData: number;
+  basePlayerMaxMemory: number;
+  baseMinionMemoryUsage: number;
   baseMinionHealth: number;
   baseMinionMovementSpeed: number;
   baseMinionAttackSpeed: number;
+  baseMinionAttackDamage: number;
+  baseMinionAttackRange: number;
+  baseTowerHealth: number;
   baseTowerRange: number;
-  baseTowerShotDamage: number;
+  baseTowerAttackDamage: number;
   baseTowerReload: number;
   baseDataGainedPerTileTravelled: number;
 }
@@ -140,12 +216,6 @@ export interface GameActions {
   ) => void;
   updateSettings: (newSettings: Partial<GameSettings>) => void;
   updateConfig: (newConfig: Partial<GameConfig>) => void;
-}
-
-export interface PlayerState {
-  summonReloadRemaining: number;
-  summonReloadTime: ScalingValue;
-  resources: ResourceState;
 }
 
 export interface MouseState {
