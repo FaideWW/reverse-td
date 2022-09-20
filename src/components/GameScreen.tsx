@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { draw, init, start, step } from "../game";
 import Canvas from "./Canvas";
 import DevConsole from "./DevConsole";
@@ -12,6 +12,7 @@ export default function GameScreen() {
     init();
     start();
   };
+  const rafId = useRef<number>(0);
 
   useEffect(() => {
     let lastFrametime = performance.now();
@@ -21,17 +22,18 @@ export default function GameScreen() {
       step(delta);
 
       lastFrametime = frametime;
-      window.requestAnimationFrame(gameLoop);
+      rafId.current = window.requestAnimationFrame(gameLoop);
     }
 
-    window.requestAnimationFrame(gameLoop);
+    rafId.current = window.requestAnimationFrame(gameLoop);
     draw();
+    return () => window.cancelAnimationFrame(rafId.current);
   }, []);
 
   return (
     <div className="w-1/2 mx-2 flex gap-8">
       <div className="grow">
-        <DevConsole />
+        {process.env.VERCEL_ENV !== "production" && <DevConsole />}
         <Settings />
         <ResourceDisplay />
       </div>

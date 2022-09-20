@@ -21,4 +21,4 @@ const map = `
 00000000000000000000
 `;
 
-export default map;
+export default { id: "testMapEasy", data: map };

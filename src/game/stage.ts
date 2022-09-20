@@ -6,7 +6,7 @@ import {
   drawLineGroup,
   drawRect,
 } from "./draw";
-import testMapEasy from "./maps/testMapEasy";
+import { getNextMap } from "./maps";
 import { createMinion, updateMinion } from "./minion";
 import {
   computeFields,
@@ -26,7 +26,7 @@ import type {
   LaserTrail,
   ListNode,
   LoadedGameState,
-  PlayerState,
+  MapData,
   Position,
   Stage,
   Tower,
@@ -39,27 +39,34 @@ import {
   llRemove,
   pointInRect,
   posToStr,
-  resolve,
   strToPos,
   worldToCanvasTransform,
 } from "./util";
 import { add, sdiv, smul, sub, vmul } from "./vector";
 
-export function loadStage({
-  canvas,
-  config,
-}: GameState): [Stage, UpdateDelegate, DrawDelegate] {
-  const [map, towers] = importMap(testMapEasy, canvas.size, config);
-  const stage: Stage = {
-    minions: null,
-    towers,
-    map,
-    timeElapsed: 0,
-    laserTrails: null,
-  };
+export function loadStage(
+  game: GameState,
+  now: Date,
+  mapData: MapData
+): [Stage, UpdateDelegate, DrawDelegate] {
+  const stage = initStage(game, now, mapData);
   console.log(stage);
 
   return [stage, update, draw];
+}
+
+export function initStage(game: GameState, now: Date, mapData: MapData): Stage {
+  const { canvas, config } = game;
+  const [map, towers] = importMap(mapData, canvas.size, config);
+  return {
+    minions: null,
+    towers,
+    map,
+    startTime: now,
+    endTime: null,
+    laserTrails: null,
+    advanceTimer: 1,
+  };
 }
 
 function getTile(tileId: number): TileType {
@@ -78,11 +85,11 @@ function getTile(tileId: number): TileType {
 }
 
 export function importMap(
-  mapData: string,
+  { data, id }: MapData,
   [canvasWidth, canvasHeight]: Dimension,
   config: GameConfig
 ): [GameMap, ListNode<Tower> | null] {
-  const trimmedMap = mapData.trim().split("\n");
+  const trimmedMap = data.trim().split("\n");
   const tileMap: Record<string, TileType> = {};
   const rows = trimmedMap.length;
   const cols = (trimmedMap[0]?.length || 0) / MAPDATA_CHARS_PER_TILE;
@@ -130,10 +137,12 @@ export function importMap(
 
   return [
     {
+      id,
       tiles: tileMap,
       mapSize: [cols, rows],
       tileSize: [canvasWidth / cols, canvasHeight / rows],
       goal: goalXY,
+      goalDestroyed: false,
       flowField,
       distanceField,
       spawnableArea,
@@ -148,8 +157,20 @@ export function update(game: LoadedGameState, delta: DOMHighResTimeStamp) {
   updatePlayer(game, delta);
 
   updateMinions(game, delta);
-  updateTowers(game, delta);
   updateLaserTrails(game, delta);
+
+  if (game.stage.map.goalDestroyed) {
+    if (game.stage.endTime === null) {
+      game.stage.endTime = new Date();
+    }
+
+    game.stage.advanceTimer -= delta / 1000;
+    if (game.stage.advanceTimer <= 0) {
+      game.stage = initStage(game, new Date(), getNextMap(game.stage.map.id));
+    }
+  }
+
+  updateTowers(game, delta);
 }
 
 export function handleInput(game: LoadedGameState) {

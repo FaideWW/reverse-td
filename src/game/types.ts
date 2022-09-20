@@ -97,10 +97,12 @@ export interface Rect {
 }
 
 export interface GameMap {
+  id: string;
   tiles: Record<string, TileType>;
   mapSize: Dimension;
   tileSize: Dimension;
   goal: Position;
+  goalDestroyed: boolean;
   flowField: Record<string, Vector | null>;
   distanceField: Record<string, number>;
   spawnableArea: Rect;
@@ -111,7 +113,9 @@ export interface Stage {
   minions: ListNode<Minion> | null;
   towers: ListNode<Tower> | null;
   laserTrails: ListNode<LaserTrail> | null;
-  timeElapsed: number;
+  startTime: Date;
+  endTime: Date | null;
+  advanceTimer: number;
 }
 
 export interface Canvas {
@@ -227,6 +231,11 @@ export interface MouseState {
 
 export interface InputState {
   mouse: MouseState;
+}
+
+export interface MapData {
+  id: string;
+  data: string;
 }
 
 export type UpdateDelegate = (

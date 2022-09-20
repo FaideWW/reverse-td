@@ -1,8 +1,10 @@
 import produce from "immer";
+import { map } from "zod/lib/types";
 import create from "zustand";
 import { devtools } from "zustand/middleware";
 import { DEFAULT_GAME_CONFIG, DEFAULT_GAME_SETTINGS } from "./constants";
 import { initInput } from "./input";
+import testMapEasy from "./maps/testMapEasy";
 import { initPlayer } from "./player";
 import { loadStage } from "./stage";
 import type {
@@ -12,7 +14,6 @@ import type {
   GameState,
   LoadedGameState,
 } from "./types";
-import { llEach } from "./util";
 
 export const useGameStore = create<GameState & GameActions>()(
   devtools((set) => {
@@ -94,7 +95,7 @@ if (process.browser) {
 export function init() {
   useGameStore.setState(
     produce((game: GameState) => {
-      const [stage, update, draw] = loadStage(game);
+      const [stage, update, draw] = loadStage(game, new Date(), testMapEasy);
       game.stage = stage;
       game.update = update;
       game.draw = draw;

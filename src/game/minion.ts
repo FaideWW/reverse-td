@@ -258,6 +258,7 @@ function doAttack(
 
         if (target.id === GOAL_TOWER_ID) {
           // TODO: Advance to the next map
+          game.stage.map.goalDestroyed = true;
         }
       }
 
