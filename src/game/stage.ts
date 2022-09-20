@@ -14,6 +14,7 @@ import {
   findNextWaypoint,
 } from "./pathfinding";
 import { updatePlayer } from "./player";
+import { computeNextMinionMemoryRequired } from "./resources";
 import { createTower, updateTower } from "./tower";
 import type {
   ColorRGBA,
@@ -151,9 +152,13 @@ export function update(game: LoadedGameState, delta: DOMHighResTimeStamp) {
   updateLaserTrails(game, delta);
 }
 
-export function handleInput({ stage, player, input, config }: LoadedGameState) {
+export function handleInput(game: LoadedGameState) {
+  const { stage, player, input, config } = game;
   if (input.mouse.left) {
-    if (player.stats.summonReload <= 0) {
+    const nextMinionCost = computeNextMinionMemoryRequired(game);
+    const playerMemoryFree =
+      player.resources.maxMemory - player.resources.currentMemory;
+    if (player.stats.summonReload <= 0 && nextMinionCost <= playerMemoryFree) {
       // Clearing the input inside the summon branch gives a minor gamefeel
       // improvement, allowing you to buffer a click slightly before the reload
       // timer expires and have the spawn trigger immediately.

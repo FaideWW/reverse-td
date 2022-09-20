@@ -32,6 +32,7 @@ export enum MinionBehavior {
 export interface MinionStats {
   health: number;
   maxHealth: number;
+  memoryUsage: number;
   movementSpeed: number;
   attackSpeed: number;
   attackDamage: number;
@@ -124,9 +125,9 @@ export interface LoadedCanvas extends Canvas {
 
 export interface ResourceState {
   currentMemory: number;
-  maxMemory: ScalingValue;
+  maxMemory: number;
   currentData: number;
-  maxData: ScalingValue;
+  maxData: number;
 }
 
 export interface PlayerStatModifiers {

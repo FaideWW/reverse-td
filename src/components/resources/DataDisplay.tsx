@@ -1,12 +1,9 @@
 import { useGameStore } from "../../game";
-import { resolve } from "../../game/util";
 import { formatNumber } from "../../utils/number";
 
 export default function DataDisplay() {
   const data = useGameStore((state) => state.player.resources.currentData);
-  const maxData = useGameStore((state) =>
-    resolve(state.player.resources.maxData)
-  );
+  const maxData = useGameStore((state) => state.player.resources.maxData);
 
   return (
     <div>

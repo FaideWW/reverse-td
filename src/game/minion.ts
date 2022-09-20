@@ -57,6 +57,7 @@ export function createMinion(
     stats: {
       health: params.stats?.health ?? minionMaxHealth,
       maxHealth: minionMaxHealth,
+      memoryUsage: params.stats?.memoryUsage ?? config.baseMinionMemoryUsage,
       movementSpeed:
         params.stats?.movementSpeed ?? config.baseMinionMovementSpeed,
       attackSpeed: params.stats?.attackSpeed ?? config.baseMinionAttackSpeed,
@@ -122,6 +123,11 @@ export function updateMinionStats(minion: Minion, game: LoadedGameState) {
     game.config.baseMinionMovementSpeed,
     game.player.globalMods.minion.movementSpeed,
     minion.localStatMods.movementSpeed
+  );
+  minion.stats.memoryUsage = resolveModifiedStat(
+    game.config.baseMinionMemoryUsage,
+    game.player.globalMods.minion.memoryUsage,
+    minion.localStatMods.memoryUsage
   );
 
   minion.stats.attackSpeed = resolveModifiedStat(

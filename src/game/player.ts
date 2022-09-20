@@ -1,4 +1,4 @@
-import { initResources } from "./resources";
+import { computeMemoryUsed, initResources } from "./resources";
 
 import type {
   GameConfig,
@@ -26,9 +26,23 @@ export function updatePlayer(
 ) {
   const { player } = game;
   updatePlayerStats(game);
+  updateResources(game);
   if (player.stats.summonReload > 0) {
     player.stats.summonReload -= delta / 1000;
   }
+}
+
+function updateResources(game: LoadedGameState) {
+  const { player } = game;
+  player.resources.currentMemory = computeMemoryUsed(game);
+  player.resources.maxMemory = resolveModifiedStat(
+    game.config.basePlayerMaxMemory,
+    player.globalMods.player.maxMemory
+  );
+  player.resources.maxData = resolveModifiedStat(
+    game.config.basePlayerMaxData,
+    player.globalMods.player.maxData
+  );
 }
 
 function updatePlayerStats({ player, config }: LoadedGameState) {

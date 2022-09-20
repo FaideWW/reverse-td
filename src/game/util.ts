@@ -125,6 +125,22 @@ export function llEach<T>(
   }
 }
 
+export function llReduce<T, K>(
+  head: ListNode<T> | null,
+  reducer: (reduction: K, element: T) => K,
+  initialValue: K
+): K {
+  if (head === null) return initialValue;
+  let node: ListNode<T> | null = head;
+  let nextValue = initialValue;
+  while (node !== null) {
+    nextValue = reducer(nextValue, node.value);
+    node = node.next;
+  }
+
+  return nextValue;
+}
+
 export function resolve(value: ScalingValue): number {
   return value.base * value.multiplier;
 }
