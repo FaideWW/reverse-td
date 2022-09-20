@@ -118,6 +118,13 @@ export function stop() {
   );
 }
 
+export function draw() {
+  const game = useGameStore.getState();
+  if (gameIsLoaded(game)) {
+    game.draw(game);
+  }
+}
+
 export function step(delta: DOMHighResTimeStamp) {
   const game = useGameStore.getState();
   if (!game.running) return;
@@ -128,7 +135,9 @@ export function step(delta: DOMHighResTimeStamp) {
   );
 
   const nextGame = useGameStore.getState();
-  if (gameIsLoaded(nextGame) && nextGame !== game) nextGame.draw(nextGame);
+  if (gameIsLoaded(nextGame) && nextGame !== game) {
+    nextGame.draw(nextGame);
+  }
   // useGameStore.setState(
   //   produce((game: GameState) => {
   //     if (!game.running) return;

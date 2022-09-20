@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { init, start, step } from "../game";
+import { draw, init, start, step } from "../game";
 import Canvas from "./Canvas";
 import DevConsole from "./DevConsole";
 import PlayerSummonReloadBar from "./PlayerSummonReloadBar";
@@ -25,6 +25,7 @@ export default function GameScreen() {
     }
 
     window.requestAnimationFrame(gameLoop);
+    draw();
   }, []);
 
   return (

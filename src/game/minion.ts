@@ -124,7 +124,6 @@ export function updateMinionStats(minion: Minion, game: LoadedGameState) {
     minion.localStatMods.movementSpeed
   );
 
-  console.log(minion.stats.movementSpeed);
   minion.stats.attackSpeed = resolveModifiedStat(
     game.config.baseMinionAttackSpeed,
     game.player.globalMods.minion.attackSpeed,

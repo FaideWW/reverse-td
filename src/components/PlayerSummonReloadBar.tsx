@@ -11,7 +11,7 @@ export default function PlayerSummonReloadBar() {
   if (playerReloadRemaining === undefined || playerReloadMax === undefined)
     return null;
 
-  const percent = Math.max(
+  const percent = Math.min(
     (1 - playerReloadRemaining / playerReloadMax) * 100,
     100
   );
