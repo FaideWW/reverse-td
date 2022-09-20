@@ -9,7 +9,7 @@ export default function DevConsole() {
   const handleChangeConfig =
     (key: string) => (e: FormEvent<HTMLInputElement>) => {
       updateConfig({
-        [key]: e.currentTarget.value,
+        [key]: Number(e.currentTarget.value),
       });
     };
 
