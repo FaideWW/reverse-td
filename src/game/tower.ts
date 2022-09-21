@@ -162,8 +162,8 @@ function doAttack(
             trackedMinion.distanceTravelled
           } tiles travelled)`
         );
-        if (player.resources.currentData > resolve(player.resources.maxData)) {
-          player.resources.currentData = resolve(player.resources.maxData);
+        if (player.resources.currentData > player.resources.maxData) {
+          player.resources.currentData = player.resources.maxData;
         }
 
         stage.minions = llRemove(
