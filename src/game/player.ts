@@ -5,7 +5,9 @@ import {
   GlobalStatModifiers,
   LoadedGameState,
   PlayerState,
+  Upgrade,
   Upgrades,
+  UpgradeState,
 } from "./types";
 
 import { makeScalingValue, resolveModifiedStat } from "./util";
