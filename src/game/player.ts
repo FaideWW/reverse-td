@@ -1,10 +1,11 @@
 import { computeMemoryUsed, initResources } from "./resources";
 
-import type {
+import {
   GameConfig,
   GlobalStatModifiers,
   LoadedGameState,
   PlayerState,
+  Upgrades,
 } from "./types";
 
 import { makeScalingValue, resolveModifiedStat } from "./util";
@@ -17,6 +18,7 @@ export function initPlayer(config: GameConfig): PlayerState {
     },
     resources: initResources(config),
     globalMods: initGlobalMods(),
+    upgrades: initUpgrades(),
   };
 }
 
@@ -74,5 +76,27 @@ function initGlobalMods(): GlobalStatModifiers {
       attackDamage: makeScalingValue(),
       reloadSpeed: makeScalingValue(),
     },
+  };
+}
+
+function initUpgrades(): UpgradeState {
+  return {
+    [Upgrades.MaxData]: createUpgrade(100, 1.1, 1.2),
+    [Upgrades.MaxMemory]: createUpgrade(100, 1.1, 1.2),
+    [Upgrades.MinionHealth]: createUpgrade(200, 1.1, 1.2),
+    [Upgrades.MinionSpeed]: createUpgrade(200, 1.1, 1.2),
+  };
+}
+
+function createUpgrade(
+  baseCost: number,
+  nextCostCoef: number,
+  nextMultiplier: number
+): Upgrade {
+  return {
+    nextCost: baseCost,
+    timesPurchased: 0,
+    nextCostCoefficient: nextCostCoef,
+    nextMultiplier: nextMultiplier,
   };
 }

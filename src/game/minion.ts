@@ -66,7 +66,7 @@ export function createMinion(
       reload: params.stats?.reload ?? 0,
       dataGainedPerTileTravelled:
         params.stats?.dataGainedPerTileTravelled ??
-        config.baseDataGainedPerTileTravelled,
+        config.baseMinionDataGainedPerTileTravelled,
     },
     pathfinding: {
       tileOffset,
@@ -75,7 +75,7 @@ export function createMinion(
     },
     dataGain:
       params.dataGain ??
-      makeScalingValue(config.baseDataGainedPerTileTravelled),
+      makeScalingValue(config.baseMinionDataGainedPerTileTravelled),
     distanceTravelled: params.distanceTravelled ?? 0,
     behavior: params.behavior ?? MinionBehavior.Marching,
     attackTargetId: null,

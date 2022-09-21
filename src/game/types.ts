@@ -163,6 +163,27 @@ export interface GlobalStatModifiers {
   tower: TowerStatModifiers;
 }
 
+export enum Upgrades {
+  MaxData = "maxData",
+  MaxMemory = "maxMemory",
+  MinionHealth = "minionHealth",
+  MinionSpeed = "minionSpeed",
+}
+
+export interface Upgrade {
+  nextCost: number;
+  timesPurchased: number;
+  nextCostCoefficient: number;
+  nextMultiplier: number;
+}
+
+export interface UpgradeState {
+  [Upgrades.MaxData]: Upgrade;
+  [Upgrades.MaxMemory]: Upgrade;
+  [Upgrades.MinionHealth]: Upgrade;
+  [Upgrades.MinionSpeed]: Upgrade;
+}
+
 export interface PlayerStats {
   summonReload: number;
   summonReloadTime: number;
@@ -172,6 +193,7 @@ export interface PlayerState {
   stats: PlayerStats;
   resources: ResourceState;
   globalMods: GlobalStatModifiers;
+  upgrades: UpgradeState;
 }
 
 export interface GameState {
@@ -205,7 +227,23 @@ export interface GameConfig {
   baseTowerRange: number;
   baseTowerAttackDamage: number;
   baseTowerReload: number;
-  baseDataGainedPerTileTravelled: number;
+  baseMinionDataGainedPerTileTravelled: number;
+
+  baseMaxMemoryUpgradeCost: number;
+  baseMaxMemoryUpgradeMultiplier: number;
+  baseMaxMemoryUpgradeCostCoef: number;
+
+  baseMaxDataUpgradeCost: number;
+  baseMaxDataUpgradeMultiplier: number;
+  baseMaxDataUpgradeCostCoef: number;
+
+  baseMinionHealthUpgradeCost: number;
+  baseMinionHealthUpgradeMultiplier: number;
+  baseMinionHealthUpgradeCostCoef: number;
+
+  baseMinionSpeedUpgradeCost: number;
+  baseMinionSpeedUpgradeMultiplier: number;
+  baseMinionSpeedUpgradeCostCoef: number;
 }
 
 export interface LoadedGameState extends GameState {

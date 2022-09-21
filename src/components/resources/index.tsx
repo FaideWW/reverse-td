@@ -1,5 +1,5 @@
-import DataDisplay from "./resources/DataDisplay";
-import MemoryDisplay from "./resources/MemoryDisplay";
+import DataDisplay from "./DataDisplay";
+import MemoryDisplay from "./MemoryDisplay";
 
 export default function ResourceTracker() {
   return (

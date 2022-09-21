@@ -3,9 +3,10 @@ import { draw, init, start, step } from "../game";
 import Canvas from "./Canvas";
 import DevConsole from "./DevConsole";
 import PlayerSummonReloadBar from "./PlayerSummonReloadBar";
-import ResourceDisplay from "./ResourceDisplay";
+import ResourceDisplay from "./resources";
 
 import Settings from "./Settings";
+import UpgradesMenu from "./upgrades";
 
 export default function GameScreen() {
   const handleStartGame = () => {
@@ -36,6 +37,7 @@ export default function GameScreen() {
         {process.env.VERCEL_ENV !== "production" && <DevConsole />}
         <Settings />
         <ResourceDisplay />
+        <UpgradesMenu />
       </div>
       <div className="flex-none">
         <Canvas onContextLoaded={handleStartGame} />
