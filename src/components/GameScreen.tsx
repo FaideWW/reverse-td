@@ -32,7 +32,7 @@ export default function GameScreen() {
   }, []);
 
   return (
-    <div className="w-1/2 mx-2 flex gap-8">
+    <div className="w-3/4 mx-2 flex gap-8">
       <div className="grow">
         {process.env.VERCEL_ENV !== "production" && <DevConsole />}
         <Settings />

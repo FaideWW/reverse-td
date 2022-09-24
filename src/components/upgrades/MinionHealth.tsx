@@ -3,24 +3,24 @@ import { Upgrades } from "../../game/types";
 import { useNextUpgrade } from "../../hooks/useNextUpgrade";
 import { formatNumber, formatPercent } from "../../utils/number";
 
-interface MaxMemoryProps {
+interface MinionHealthProps {
   purchaseAmount: number;
 }
-export default function MaxMemory({ purchaseAmount }: MaxMemoryProps) {
+export default function MinionHealth({ purchaseAmount }: MinionHealthProps) {
   const [upgrade, nextCost, canAfford] = useNextUpgrade(
-    Upgrades.MaxMemory,
+    Upgrades.MinionHealth,
     purchaseAmount
   );
-  const buyMaxMemory = useGameStore((store) => store.buyMaxMemoryUpgrade);
+  const buy = useGameStore((store) => store.buyMinionHealthUpgrade);
 
   return (
     <button
       type="button"
       className="block p-1 border rounded border-gray-700 disabled:bg-gray-200 disabled:text-gray-500"
-      onClick={() => buyMaxMemory(purchaseAmount)}
+      onClick={() => buy(purchaseAmount)}
       disabled={!canAfford}
     >
-      Max memory +{formatPercent(upgrade.nextUpgradeMultiplier)}:{" "}
+      Minion health +{formatPercent(upgrade.nextUpgradeMultiplier)}:{" "}
       {formatNumber(nextCost)} Data
     </button>
   );

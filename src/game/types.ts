@@ -171,10 +171,10 @@ export enum Upgrades {
 }
 
 export interface Upgrade {
-  nextCost: number;
-  timesPurchased: number;
-  nextCostCoefficient: number;
-  nextMultiplier: number;
+  baseCost: number;
+  numberOwned: number;
+  costCoefficient: number;
+  nextUpgradeMultiplier: number;
 }
 
 export interface UpgradeState {
@@ -260,6 +260,15 @@ export interface GameActions {
   updateSettings: (newSettings: Partial<GameSettings>) => void;
   updateConfig: (newConfig: Partial<GameConfig>) => void;
 }
+
+export interface ResourceActions {
+  buyMaxDataUpgrade: (numPurchased: number) => void;
+  buyMaxMemoryUpgrade: (numPurchased: number) => void;
+  buyMinionSpeedUpgrade: (numPurchased: number) => void;
+  buyMinionHealthUpgrade: (numPurchased: number) => void;
+}
+
+export interface GameStore extends GameState, GameActions, ResourceActions {}
 
 export interface MouseState {
   xy: Position;

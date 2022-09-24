@@ -15,7 +15,7 @@ export default function DevConsole() {
 
   return (
     <div
-      className={`absolute bottom-2 right-2 border rounded border-gray-700 p-2 ${
+      className={`absolute bottom-2 right-2 border rounded border-gray-700 p-2 bg-white ${
         open ? "opacity-100" : "opacity-25 hover:opacity-100"
       } `}
     >

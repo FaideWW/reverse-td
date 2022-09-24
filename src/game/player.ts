@@ -20,7 +20,7 @@ export function initPlayer(config: GameConfig): PlayerState {
     },
     resources: initResources(config),
     globalMods: initGlobalMods(),
-    upgrades: initUpgrades(),
+    upgrades: initUpgrades(config),
   };
 }
 
@@ -81,12 +81,28 @@ function initGlobalMods(): GlobalStatModifiers {
   };
 }
 
-function initUpgrades(): UpgradeState {
+function initUpgrades(config: GameConfig): UpgradeState {
   return {
-    [Upgrades.MaxData]: createUpgrade(100, 1.1, 1.2),
-    [Upgrades.MaxMemory]: createUpgrade(100, 1.1, 1.2),
-    [Upgrades.MinionHealth]: createUpgrade(200, 1.1, 1.2),
-    [Upgrades.MinionSpeed]: createUpgrade(200, 1.1, 1.2),
+    [Upgrades.MaxData]: createUpgrade(
+      config.baseMaxDataUpgradeCost,
+      config.baseMaxDataUpgradeCostCoef,
+      config.baseMaxDataUpgradeMultiplier
+    ),
+    [Upgrades.MaxMemory]: createUpgrade(
+      config.baseMaxMemoryUpgradeCost,
+      config.baseMaxMemoryUpgradeCostCoef,
+      config.baseMaxMemoryUpgradeMultiplier
+    ),
+    [Upgrades.MinionHealth]: createUpgrade(
+      config.baseMinionHealthUpgradeCost,
+      config.baseMinionHealthUpgradeCostCoef,
+      config.baseMinionHealthUpgradeMultiplier
+    ),
+    [Upgrades.MinionSpeed]: createUpgrade(
+      config.baseMinionSpeedUpgradeCost,
+      config.baseMinionSpeedUpgradeCostCoef,
+      config.baseMinionSpeedUpgradeMultiplier
+    ),
   };
 }
 
@@ -96,9 +112,9 @@ function createUpgrade(
   nextMultiplier: number
 ): Upgrade {
   return {
-    nextCost: baseCost,
-    timesPurchased: 0,
-    nextCostCoefficient: nextCostCoef,
-    nextMultiplier: nextMultiplier,
+    baseCost,
+    numberOwned: 0,
+    costCoefficient: nextCostCoef,
+    nextUpgradeMultiplier: nextMultiplier,
   };
 }

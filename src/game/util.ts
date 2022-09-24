@@ -5,6 +5,7 @@ import type {
   Rect,
   ScalingValue,
   TileType,
+  Upgrade,
 } from "./types";
 import { add } from "./vector";
 
@@ -165,4 +166,27 @@ export function resolveModifiedStat(
     [0, 1]
   );
   return (baseValue + totalAdded) * totalCoefficient;
+}
+
+// Yoinked from https://blog.kongregate.com/the-math-of-idle-games-part-i/
+export function computeBulkBuyCost(upgrade: Upgrade, quantity: number): number {
+  return (
+    upgrade.baseCost *
+    ((upgrade.costCoefficient ** upgrade.numberOwned *
+      (upgrade.costCoefficient ** quantity - 1)) /
+      (upgrade.costCoefficient - 1))
+  );
+}
+
+export function computeMaxAffordable(
+  upgrade: Upgrade,
+  available: number
+): number {
+  return Math.floor(
+    Math.log(
+      (available * (upgrade.costCoefficient - 1)) /
+        (upgrade.baseCost * upgrade.costCoefficient ** upgrade.numberOwned) +
+        1
+    ) / Math.log(upgrade.costCoefficient)
+  );
 }
